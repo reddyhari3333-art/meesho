@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "meesho-project"
+        DOCKER_HUB_REPO = "yourdockerhub/meesho-project"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git '  '
+            }
+        }
+
+        stage('Build with Maven') {
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build("${DOCKER_HUB_REPO}:${BUILD_NUMBER}")
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('', 'dockerhub-credentials-id') {
+                        dockerImage.push()
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh 'kubectl apply -f kubernetes/deployment.yaml'
+            }
+        }
+    }
+}
